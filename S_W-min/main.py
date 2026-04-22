@@ -31,8 +31,8 @@ import keyboard
 
 # 🔹 БЛОК КОНФИГУРАЦИИ
 # =============================================================================
-MODEL_ID = "qwen2.5:14b"  # Название модели в Ollama
-OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL_ID = "qwen-instruct"  # Ваша кастомная модель с прошитым SYSTEM-промптом
+OLLAMA_URL = "http://localhost:11434/v1/chat/completions"  # OpenAI-совместимый эндпоинт
 INPUT_FILE = "C:\\Users\\gahar\\Desktop\\P_W\\markup_output.txt"
 COOLDOWN_SEC = 10  # Минимальная пауза между запросами к API
 # =============================================================================
@@ -75,14 +75,17 @@ class ParserFileHandler(FileSystemEventHandler):
         return True
 
     def _send_to_ollama(self, user_content: str) -> str | None:
+        """Отправляет запрос в Ollama через OpenAI-совместимый API."""
         headers = {
             "Content-Type": "application/json"
         }
         
+        # Формируем payload для OpenAI-совместимого эндпоинта
         payload = {
             "model": self.model_id,
-            "prompt": user_content,
-            "stream": False
+            "messages": [{"role": "user", "content": user_content}],
+            "temperature": 0.1,
+            "max_tokens": 10
         }
         
         try:
@@ -90,7 +93,8 @@ class ParserFileHandler(FileSystemEventHandler):
             response.raise_for_status()
             
             result = response.json()
-            content = result.get("response", "")
+            # Извлекаем ответ из формата OpenAI API
+            content = result["choices"][0]["message"]["content"].strip()
             logger.info("Ответ успешно получен от Ollama API")
             return content
             
