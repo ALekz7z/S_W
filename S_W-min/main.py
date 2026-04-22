@@ -6,8 +6,7 @@
 📋 ИНСТРУКЦИЯ ПО ЗАПУСКУ:
 1. Установите зависимости: pip install -r requirements.txt
 2. Установите и запустите Ollama на вашем ПК
-3. Создайте system_prompt.txt с инструкцией для нейросети
-4. Запустите: python main.py
+3. Запустите: python main.py
 
 Скрипт будет мониторить markup_output.txt и автоматически отправлять
 новые данные в локальную Ollama, выводить ответы в консоль и нажимать
@@ -32,10 +31,9 @@ import keyboard
 
 # 🔹 БЛОК КОНФИГУРАЦИИ
 # =============================================================================
-MODEL_ID = "nemotron"  # Название модели в Ollama (например, nemotron, llama2, mistral и т.д.)
+MODEL_ID = "qwen2.5:14b"  # Название модели в Ollama
 OLLAMA_URL = "http://localhost:11434/api/generate"
 INPUT_FILE = "C:\\Users\\gahar\\Desktop\\P_W\\markup_output.txt"
-PROMPT_FILE = "system_prompt.txt"
 COOLDOWN_SEC = 10  # Минимальная пауза между запросами к API
 # =============================================================================
 
@@ -54,10 +52,9 @@ logger = logging.getLogger(__name__)
 class ParserFileHandler(FileSystemEventHandler):
     """Обработчик событий изменения файла парсера."""
 
-    def __init__(self, input_file: str, system_prompt: str, model_id: str, cooldown: int):
+    def __init__(self, input_file: str, model_id: str, cooldown: int):
         super().__init__()
         self.input_file = input_file
-        self.system_prompt = system_prompt
         self.model_id = model_id
         self.cooldown = cooldown
         
@@ -85,7 +82,6 @@ class ParserFileHandler(FileSystemEventHandler):
         payload = {
             "model": self.model_id,
             "prompt": user_content,
-            "system": self.system_prompt,
             "stream": False
         }
         
@@ -217,22 +213,6 @@ class ParserFileHandler(FileSystemEventHandler):
             self.is_processing = False
 
 
-def load_system_prompt(prompt_file: str) -> str:
-    if not os.path.exists(prompt_file):
-        logger.warning(f"Файл {prompt_file} не найден. Создаётся пустой файл.")
-        Path(prompt_file).touch()
-        return ""
-    try:
-        with open(prompt_file, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-            if not content:
-                logger.warning(f"Файл {prompt_file} пуст. Нейросеть будет работать без системной инструкции.")
-            return content
-    except IOError as e:
-        logger.error(f"Ошибка чтения файла {prompt_file}: {e}")
-        return ""
-
-
 def ensure_file_exists(filepath: str):
     if not os.path.exists(filepath):
         Path(filepath).touch()
@@ -241,16 +221,10 @@ def ensure_file_exists(filepath: str):
 
 def main():
     logger.info(f"Используемая модель: {MODEL_ID}")
-    system_prompt = load_system_prompt(PROMPT_FILE)
-    if system_prompt:
-        logger.info(f"Системный промпт загружен ({len(system_prompt)} символов)")
-    else:
-        logger.warning("Работа без системного промпта")
     ensure_file_exists(INPUT_FILE)
     
     event_handler = ParserFileHandler(
         input_file=INPUT_FILE,
-        system_prompt=system_prompt,
         model_id=MODEL_ID,
         cooldown=COOLDOWN_SEC
     )
